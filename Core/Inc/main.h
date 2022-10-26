@@ -72,16 +72,6 @@ void Error_Handler(void);
 #define LED_GREEN_GPIO_Port GPIOA
 #define LCD_DC_Pin GPIO_PIN_4
 #define LCD_DC_GPIO_Port GPIOC
-#define F4_CS_Pin GPIO_PIN_0
-#define F4_CS_GPIO_Port GPIOB
-#define RELE1_Pin GPIO_PIN_1
-#define RELE1_GPIO_Port GPIOB
-#define RELE2_Pin GPIO_PIN_2
-#define RELE2_GPIO_Port GPIOB
-#define RELE3_Pin GPIO_PIN_11
-#define RELE3_GPIO_Port GPIOB
-#define RELE4_Pin GPIO_PIN_12
-#define RELE4_GPIO_Port GPIOB
 #define BLE_CMD_Pin GPIO_PIN_6
 #define BLE_CMD_GPIO_Port GPIOC
 #define BLE_PWR_Pin GPIO_PIN_8
@@ -90,12 +80,6 @@ void Error_Handler(void);
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
 #define TCK_GPIO_Port GPIOA
-#define ds18b20_Pin GPIO_PIN_10
-#define ds18b20_GPIO_Port GPIOC
-#define IN1_Pin GPIO_PIN_11
-#define IN1_GPIO_Port GPIOC
-#define IN2_Pin GPIO_PIN_12
-#define IN2_GPIO_Port GPIOC
 #define SWO_Pin GPIO_PIN_3
 #define SWO_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
