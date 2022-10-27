@@ -49,7 +49,7 @@
 /* USER CODE BEGIN PM */
 
 /* Private define ------------------------------------------------------------*/
-#define UART_BUFFER_SIZE 	 30
+#define UART_BUFFER_SIZE 	 120
 #define REFRESH_OUTPUT 		 500
 #define REFRESH_DISPLAY 	 500
 #define UART_DATA_TIME		 500
@@ -112,8 +112,8 @@ static uint32_t u32TimeBuff;				//Atualizção de dados no RX DMA
 uint8_t u8BufUart4Data[30];					//Buffer da UART BLE
 uint8_t u8BufUart2Data[30];					//Buffer da UART USB
 char Buff_Display[120];						//Buffer para escrita display
-char bufferUart2Tx[120];					//Buffer de transmissão Bluetooth
-char bufferUart2Rx[120];					//Buffer de Recepção Bluetooth
+char bufferUart2Tx[UART_BUFFER_SIZE];					//Buffer de transmissão Bluetooth
+char bufferUart2Rx[UART_BUFFER_SIZE];					//Buffer de Recepção Bluetooth
 bool BreadTemp = false;						//Flag de leitura da temperatura ONEWIRE
 float fSet_Temp = 25;						//Valor de temperatura de controle
 uint32_t u32RefreschDisplay;				//Atualização do display
@@ -152,6 +152,7 @@ uint32_t u32time_means = 0;
 float fmeans;
 float fcurrent = 0;
 uint8_t vu8Index = 0;
+uint16_t u16ValueDAC = 2047;
 
 void ReadTemp(void);
 uint8_t Config_Bt(void);
@@ -175,7 +176,7 @@ void GetPress(void);
 
 uint16_t ReadAnalogIn(uint8_t u8Channel);
 void ReadAD(void);
-void CheckCharMatch(UART_HandleTypeDef *hUart);
+
 
 /* USER CODE END PM */
 
@@ -183,6 +184,7 @@ void CheckCharMatch(UART_HandleTypeDef *hUart);
 ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc2;
 DMA_HandleTypeDef hdma_adc1;
+DMA_HandleTypeDef hdma_adc2;
 
 DAC_HandleTypeDef hdac1;
 
@@ -254,14 +256,14 @@ int main(void)
 	MX_GPIO_Init();
 	MX_USART2_UART_Init();
 	MX_DMA_Init();
+	MX_SPI2_Init();
 	MX_UART4_Init();
 	MX_I2C1_Init();
-	MX_TIM6_Init();
-	MX_I2C2_Init();
+//	MX_TIM6_Init();
 	MX_ADC1_Init();
 	MX_ADC2_Init();
 	MX_DAC1_Init();
-	MX_SPI2_Init();
+
 	/* USER CODE BEGIN 2 */
 
 	LCD_Init();
@@ -270,24 +272,27 @@ int main(void)
 	LCD_Write_String(0,4,"AGUARDE.....");
 	BMP180_Start();
 
+	HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
+    HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, u16ValueDAC);
+
 	/*
     Ds18b20_Init();		//Inicia sensor OneWire
     Ds18b20_ManualConvert();
     DS18B20_Start(&OneWire, ds18b20[0].Address);
     BMP180_Start(); //Inicia sensor BMP-180
 	 */
-	HAL_Delay(3000);
-	if(Config_Bt() != HAL_OK)			//Configura nome, uart e PSW do bluetooth
-	{
-		BluPwr(false);
-		HAL_Delay(100);
-		BluPwr(true);
-		HAL_Delay(2000);
-		if(Config_Bt() != HAL_OK)
-			HAL_NVIC_SystemReset();
-	}
+//	HAL_Delay(3000);
+//	if(Config_Bt() != HAL_OK)			//Configura nome, uart e PSW do bluetooth
+//	{
+//		BluPwr(false);
+//		HAL_Delay(100);
+//		BluPwr(true);
+//		HAL_Delay(2000);
+//		if(Config_Bt() != HAL_OK)
+//			HAL_NVIC_SystemReset();
+//	}
 
-	HAL_UART_Receive_IT(&huart2, (uint8_t*)bufferUart2Rx, 1);		//Inicia a recepção UART2
+	//HAL_UART_Receive_IT(&huart2, (uint8_t*)bufferUart2Rx, 1);		//Inicia a recepção UART2
 
 
 
@@ -410,11 +415,11 @@ static void MX_ADC1_Init(void)
 	hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
 	hadc1.Init.Resolution = ADC_RESOLUTION_12B;
 	hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-	hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-	hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+	hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
+	hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
 	hadc1.Init.LowPowerAutoWait = DISABLE;
-	hadc1.Init.ContinuousConvMode = DISABLE;
-	hadc1.Init.NbrOfConversion = 1;
+	hadc1.Init.ContinuousConvMode = ENABLE;
+	hadc1.Init.NbrOfConversion = NUM_AD_CHANNELS;
 	hadc1.Init.DiscontinuousConvMode = DISABLE;
 	hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
 	hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
@@ -447,19 +452,19 @@ static void MX_ADC1_Init(void)
 		Error_Handler();
 	}
 
-	sConfig.Channel = ADC_CHANNEL_3;
-	sConfig.Rank = ADC_REGULAR_RANK_2;
-	sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
-	sConfig.SingleDiff = ADC_SINGLE_ENDED;
-	sConfig.OffsetNumber = ADC_OFFSET_NONE;
-	sConfig.Offset = 0;
-	if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-	{
-		Error_Handler();
-	}
+//	sConfig.Channel = ADC_CHANNEL_3;
+//	sConfig.Rank = ADC_REGULAR_RANK_2;
+//	sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
+//	sConfig.SingleDiff = ADC_SINGLE_ENDED;
+//	sConfig.OffsetNumber = ADC_OFFSET_NONE;
+//	sConfig.Offset = 0;
+//	if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+//	{
+//		Error_Handler();
+//	}
 
 	sConfig.Channel = ADC_CHANNEL_11;
-	sConfig.Rank = ADC_REGULAR_RANK_3;
+	sConfig.Rank = ADC_REGULAR_RANK_2;
 	sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
 	sConfig.SingleDiff = ADC_SINGLE_ENDED;
 	sConfig.OffsetNumber = ADC_OFFSET_NONE;
@@ -470,11 +475,11 @@ static void MX_ADC1_Init(void)
 	}
 	/* USER CODE BEGIN ADC1_Init 2 */
 	sConfig.Channel = ADC_CHANNEL_VREFINT;
-	sConfig.Rank = ADC_REGULAR_RANK_4;
+	sConfig.Rank = ADC_REGULAR_RANK_3;
 	HAL_ADC_ConfigChannel(&hadc1, &sConfig);
 
 	sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
-	sConfig.Rank = ADC_REGULAR_RANK_5;
+	sConfig.Rank = ADC_REGULAR_RANK_4;
 	HAL_ADC_ConfigChannel(&hadc1, &sConfig);
 
 
@@ -506,21 +511,21 @@ static void MX_ADC2_Init(void)
 
 	/** Common config
 	 */
-	hadc1.Instance = ADC2;
-	hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
-	hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-	hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-	hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-	hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-	hadc1.Init.LowPowerAutoWait = DISABLE;
-	hadc1.Init.ContinuousConvMode = DISABLE;
-	hadc1.Init.NbrOfConversion = 1;
-	hadc1.Init.DiscontinuousConvMode = DISABLE;
-	hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-	hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-	hadc1.Init.DMAContinuousRequests = DISABLE;
-	hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
-	hadc1.Init.OversamplingMode = DISABLE;
+	hadc2.Instance = ADC2;
+	hadc2.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+	hadc2.Init.Resolution = ADC_RESOLUTION_12B;
+	hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+	hadc2.Init.ScanConvMode = ADC_SCAN_DISABLE;
+	hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+	hadc2.Init.LowPowerAutoWait = DISABLE;
+	hadc2.Init.ContinuousConvMode = DISABLE;
+	hadc2.Init.NbrOfConversion = 1;
+	hadc2.Init.DiscontinuousConvMode = DISABLE;
+	hadc2.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+	hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+	hadc2.Init.DMAContinuousRequests = DISABLE;
+	hadc2.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+	hadc2.Init.OversamplingMode = DISABLE;
 	if (HAL_ADC_Init(&hadc2) != HAL_OK)
 	{
 		Error_Handler();
@@ -722,7 +727,7 @@ static void MX_SPI2_Init(void)
 	hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
 	hspi2.Init.CRCPolynomial = 7;
 	hspi2.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
-	hspi2.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+	hspi2.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
 	if (HAL_SPI_Init(&hspi2) != HAL_OK)
 	{
 		Error_Handler();
@@ -780,7 +785,7 @@ static void MX_UART4_Init(void)
 {
 
 	/* USER CODE BEGIN UART4_Init 0 */
-	UART_WakeUpTypeDef sAddressMatch;
+
 	/* USER CODE END UART4_Init 0 */
 
 	/* USER CODE BEGIN UART4_Init 1 */
@@ -801,13 +806,8 @@ static void MX_UART4_Init(void)
 		Error_Handler();
 	}
 	/* USER CODE BEGIN UART4_Init 2 */
-	sAddressMatch.WakeUpEvent = UART_WAKEUP_ON_ADDRESS;
-	sAddressMatch.AddressLength = UART_ADDRESS_DETECT_7B;
-	sAddressMatch.Address = '\r';
-	HAL_UARTEx_StopModeWakeUpSourceConfig(&huart4, sAddressMatch);
 
-	//	__HAL_UART_ENABLE_IT(&huart4, UART_IT_CM);
-	//	HAL_UART_Receive_DMA(&huart4, avu8RxBuffer, FRAME_SIZE);
+
 	/* USER CODE END UART4_Init 2 */
 
 }
@@ -842,7 +842,17 @@ static void MX_USART2_UART_Init(void)
 		Error_Handler();
 	}
 	/* USER CODE BEGIN USART2_Init 2 */
+	UART_WakeUpTypeDef sAddressMatch;
 
+	sAddressMatch.WakeUpEvent = UART_WAKEUP_ON_ADDRESS;
+	sAddressMatch.AddressLength = UART_ADDRESS_DETECT_7B;
+	sAddressMatch.Address = '\r';
+	HAL_UARTEx_StopModeWakeUpSourceConfig(&huart2, sAddressMatch);
+
+		__HAL_UART_ENABLE_IT(&huart2, UART_IT_CM);
+	__HAL_UART_ENABLE_IT(&huart2, UART_IT_CM);
+	HAL_UART_Receive_DMA(&huart4, (uint8_t*)bufferUart2Rx, UART_BUFFER_SIZE);
+	//	HAL_UART_Receive_DMA(&huart4, avu8RxBuffer, FRAME_SIZE);
 	/* USER CODE END USART2_Init 2 */
 
 }
@@ -1079,9 +1089,9 @@ uint8_t Config_Bt(void)
 	BluPwr(true);
 	huart4.Init.BaudRate = 9600;
 	HAL_UART_Init(&huart4);
-	__HAL_UART_ENABLE_IT(&huart4, UART_IT_CM);
-	HAL_UART_Receive_DMA(&huart4, u8BufRxUartData, UART_BUFFER_SIZE);
-	//UART_Start_Receive_DMA(&huart4,u8BufRxUartData,UART_BUFFER_SIZE);
+//	__HAL_UART_ENABLE_IT(&huart4, UART_IT_CM);
+//	HAL_UART_Receive_DMA(&huart4, u8BufRxUartData, UART_BUFFER_SIZE);
+	UART_Start_Receive_DMA(&huart4,u8BufRxUartData,UART_BUFFER_SIZE);
 
 	return HAL_OK;
 }
@@ -1099,9 +1109,9 @@ void CheckCharMatch(UART_HandleTypeDef *hUart)
 		//ínicio do buffer de recepção UART após reiniciado a recepção por DMA
 		__HAL_UART_CLEAR_FLAG(hUart, UART_CLEAR_CMF);
 		vu8Index = UART_BUFFER_SIZE - hUart->hdmarx->Instance->CNDTR;
-		u8BufRxUartData[vu8Index -1] = '\0';
+		bufferUart2Rx[vu8Index -1] = '\0';
 		HAL_UART_DMAStop(hUart);									//para a recepção UART por DMA
-		HAL_UART_Receive_DMA(hUart, u8BufRxUartData, UART_BUFFER_SIZE);		//Ativa a recepção UART por DMA
+		HAL_UART_Receive_DMA(&huart4, (uint8_t*)bufferUart2Rx, UART_BUFFER_SIZE);		//Ativa a recepção UART por DMA
 	}
 }
 uint8_t Manage_Data_Blue(uint8_t *u8Data)
@@ -1292,7 +1302,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 }
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-
+	u16ValueDAC += 100;
+	if(u16ValueDAC > 4096)
+		u16ValueDAC = 1500;
+	 HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, u16ValueDAC);
 }
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {

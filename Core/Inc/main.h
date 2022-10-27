@@ -46,7 +46,7 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-
+void CheckCharMatch(UART_HandleTypeDef *hUart);
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/

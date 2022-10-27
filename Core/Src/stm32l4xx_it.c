@@ -65,7 +65,6 @@ extern DMA_HandleTypeDef hdma_uart4_rx;
 extern DMA_HandleTypeDef hdma_uart4_tx;
 extern UART_HandleTypeDef huart4;
 extern UART_HandleTypeDef huart2;
-extern TIM_HandleTypeDef htim7;
 
 /* USER CODE BEGIN EV */
 
@@ -196,7 +195,7 @@ void SysTick_Handler(void)
   /* USER CODE BEGIN SysTick_IRQn 0 */
 
   /* USER CODE END SysTick_IRQn 0 */
-
+	HAL_IncTick();
   /* USER CODE BEGIN SysTick_IRQn 1 */
 
   /* USER CODE END SysTick_IRQn 1 */
@@ -299,7 +298,7 @@ void I2C2_ER_IRQHandler(void)
 void USART2_IRQHandler(void)
 {
   /* USER CODE BEGIN USART2_IRQn 0 */
-
+	CheckCharMatch(&huart2);
   /* USER CODE END USART2_IRQn 0 */
   HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
@@ -327,7 +326,7 @@ void EXTI15_10_IRQHandler(void)
 void UART4_IRQHandler(void)
 {
   /* USER CODE BEGIN UART4_IRQn 0 */
-	CheckCharMatch(&huart4);
+
   /* USER CODE END UART4_IRQn 0 */
   HAL_UART_IRQHandler(&huart4);
   /* USER CODE BEGIN UART4_IRQn 1 */
@@ -348,20 +347,6 @@ void TIM6_DAC_IRQHandler(void)
   /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
 
   /* USER CODE END TIM6_DAC_IRQn 1 */
-}
-
-/**
-  * @brief This function handles TIM7 global interrupt.
-  */
-void TIM7_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM7_IRQn 0 */
-
-  /* USER CODE END TIM7_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim7);
-  /* USER CODE BEGIN TIM7_IRQn 1 */
-
-  /* USER CODE END TIM7_IRQn 1 */
 }
 
 /**
