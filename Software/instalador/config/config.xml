@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<Installer>
+<Name>Teste Módulo Veículo</Name>
+   <Version>1.0.5</Version>
+   <Title>Software teste MV</Title>
+   <Publisher>Vieira Filho</Publisher>
+   <TargetDir>@ApplicationsDir@/NUNTEC/software teste MV</TargetDir>
+   <StartMenuDir>NUNTEC/software teste MV</StartMenuDir>
+   <WizardStyle>Modern</WizardStyle>
+   <InstallerApplicationIcon>icon</InstallerApplicationIcon>
+   <Logo>logo.png</Logo>
+   <InstallerWindowIcon>icon</InstallerWindowIcon>
+   <MaintenanceToolName>uninstaller</MaintenanceToolName>
+   <MaintenanceToolIniFile>uninstaller.ini</MaintenanceToolIniFile>
+ </Installer>
+ 

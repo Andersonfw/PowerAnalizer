@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Package>
+    <DisplayName>Software de Teste MV</DisplayName>
+    <Description>Software de Teste do modúlo veículo</Description>
+    <Version>1.0.5</Version>
+    <ReleaseDate>2022-10-17</ReleaseDate>
+    <Name>com.vf.root</Name>
+    <Licenses>
+        <License name="License Agreement" file="license.txt" />
+    </Licenses>
+    <ForcedInstallation>true</ForcedInstallation>
+	<Script>installscript.qs</Script>
+</Package>
