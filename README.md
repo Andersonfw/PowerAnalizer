@@ -1,6 +1,8 @@
 # PowerAnalyzer
 Trabalho GB de Instrumentação
 
+Firmware + software para visualização e LOG.
+
 Medição de corrente com sensor Hall e Shunt.
 
 
