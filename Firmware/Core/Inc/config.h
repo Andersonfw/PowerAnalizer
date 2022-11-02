@@ -53,34 +53,16 @@ enum
 #define REFRESH_OUTPUT 		 500
 #define REFRESH_DISPLAY 	 500
 #define UART_DATA_TIME		 500
-#define NAME_BL		"PT-100\r\n"
+#define NAME_BL		"POWERANALYZER\r\n"
 #define UART_BL		"9600,0,0\r\n"
 #define PSW_BL		"1234\r\n"
-#define SET_TEMP	"SETEMP"
-#define GET_TEMPIN	"GETEMPIN"
-#define GET_TEMPOUT	"GETEMPOUT"
-#define GET_PRES	"GETPRES"
-#define GET_VOLTAGE_10	"GETVOLTAGE"
-#define GET_VOLTAGE_AD	"GETAD"
-#define FW_VERSION			"1.2"
-
-//#define VREFCAL_ADDRESS		0x1FFF75AA	// endereço da calibração de tensão da referência interna
-//#define T30					30.00f			// Valor da temperatura utilizada na calibração 1
-//#define T110				110.0f			// Valor da temperatura utilizada na calibração 2
-//#define TS30				((uint16_t*)((uint32_t)0x1FFF75A8))	// endereço da calibração de temperatura 1 da referência interna
-//#define TS110				((uint16_t*)((uint32_t)0x1FFF75CA))	// endereço da calibração de temperatura 2 da referência interna
-//#define TEMP_COMP			30.0f		// Valor de temperatura default
-//#define AD_MAX				4095.0f		// valor máximo do conversor AD (12 bits)
-//#define VDDA_REF			3000.0f		// tensão de calibração da referência
-//#define VAD_FILTER_SIZE		100			// número de termos dos filtros do conversor AD
-//#define VAD_SAMPLE_TIME		10000		// intervalo de leitura do conversor AD (ms)
-//#define VMAX_VOUT			5000.0f
-//#define REFRESH_AD			500
-//#define REFRESH_TEMP		2000
-//#define R1					66950
-//#define R2					30050
-//#define CORRECTION			1
-
+#define GET_TEMPBMP	"GETEMPBMP"
+#define GET_VIN		"GETVIN"
+#define GET_IS		"GETIS"
+#define GET_IH		"GETIH"
+#define GET_PS		"GETPS"
+#define GET_PH		"GETPH"
+#define FW_VERSION	"1.2"
 
 
 // Porta A

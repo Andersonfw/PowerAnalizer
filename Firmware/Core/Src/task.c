@@ -25,10 +25,10 @@
 #define VMAX_VOUT			5000.0f
 #define REFRESH_AD			500
 #define REFRESH_TEMP		2000
-#define R1_OUT					66950
-#define R2_OUT					30050
-#define R1_IN					100250
-#define R2_IN					4647
+#define R1_OUT				66950
+#define R2_OUT				30050
+#define R1_IN				100250
+#define R2_IN				4647
 #define CORRECTION			1
 #define MAXCURRENT			5000.0f		//Corrente máxima do HALL
 #define HALLRESSOLUTION		10.0f		//100mV=1A -> 1mV=10mA no HALL
@@ -63,6 +63,8 @@ float fCurrentHall = 0;
 float fPowerHall = 0;
 float fPowerShunt = 0;
 
+extern UART_HandleTypeDef huart4;
+
 
 // Private function prototypes -------------------------------------------------
 void ReadBMP(void);
@@ -90,10 +92,13 @@ int main(void)
 	ConfigRCC();
 	ConfigPeriph();
 	ConfigIO();
+	BluPwr(false);
+	BluCmd(true);
 	ConfigDMA();
 	ConfigUSART2();
 	ConfigUART4();
 	ConfigI2C();
+	BluPwr(true);
 	ConfigTIM();
 	ConfigADC1();
 	ConfigDAC1();
@@ -106,16 +111,16 @@ int main(void)
 	LCD_Write_String(0,4,"AGUARDE.....");
 	BMP180_Start();
 
-	//	HAL_Delay(3000);
-	//	if(Config_Bt() != HAL_OK)			//Configura nome, uart e PSW do bluetooth
-	//	{
-	//		BluPwr(false);
-	//		HAL_Delay(100);
-	//		BluPwr(true);
-	//		HAL_Delay(2000);
-	//		if(Config_Bt() != HAL_OK)
-	//			HAL_NVIC_SystemReset();
-	//	}
+		HAL_Delay(3000);
+		if(Config_Bt() != HAL_OK)			//Configura nome, uart e PSW do bluetooth
+		{
+			BluPwr(false);
+			HAL_Delay(100);
+			BluPwr(true);
+			HAL_Delay(2000);
+			if(Config_Bt() != HAL_OK)
+				HAL_NVIC_SystemReset();
+		}
 
 	while (1)
 	{
@@ -149,7 +154,6 @@ int main(void)
 		}
 
 		PowerSystem();
-		//VoutControl(u32VoutVoltage);
 		RxProcess();
 	}
 }
@@ -342,14 +346,16 @@ void TaskKey(void)
 void UartData (void)
 {
 	uint8_t u8size;
+	uint8_t u8buffData[UART_BUFFER_SIZE];
+
 	if(TimeDiff(u32TimeRefreshBLE)> UART_DATA_TIME)
 	{
 		u32TimeRefreshBLE = HAL_GetTick();
 		u8size = GetUartRxDataSize();
 		if(u8size)
 		{
-			//UartGetData(u8size, (uint8_t*)u8BufBLE_Tx);
-			//Manage_Data_Blue(u8BufBLE_Tx);
+			UartGetData(u8size, (uint8_t*)u8buffData);
+			Manage_Data_Blue(u8buffData);
 		}
 	}
 }
@@ -357,88 +363,90 @@ void UartData (void)
 /// @brief		Tratamento da mensagem recebida
 /// @fn			uint8_t Manage_Data_Blue(uint8_t *u8Data)
 // *****************************************************************************
-//uint8_t Manage_Data_Blue(uint8_t *u8Data)
-//{
-//	char identify;
-//	char *p;
-//	char cmd[10];
-//	char parametro[10];
-//
-//	if(strstr((char*)u8Data,(char*)"AT+") == NULL)
-//		goto ERROR;
-//
-//	p = strchr((char*)u8Data,'=');
-//	if(p == NULL)
-//		p = strchr((char*)u8Data,'?');
-//	if(p == NULL)
-//		goto ERROR;
-//	identify = p[0];
-//	p = strtok ((char*)u8Data,"+=?");
-//	p = strtok (NULL,"+=?");
-//	if(p != NULL)
-//		strcpy(cmd,p);
-//	else
-//		goto ERROR;
-//	if(identify == '=')
-//		p = strtok (NULL,"=");
-//	else
-//		p = strtok (NULL,"?");
-//	if(p != NULL)
-//		strcpy(parametro,p);
-//	else
-//		goto ERROR;
-//
+uint8_t Manage_Data_Blue(uint8_t *u8Data)
+{
+	char identify;
+	char *p;
+	char cmd[10];
+	char parametro[10];
+	static uint8_t u8buffSend[100];
+
+	if(strstr((char*)u8Data,(char*)"AT+") == NULL)
+		goto ERROR;
+
+	p = strchr((char*)u8Data,'=');
+	if(p == NULL)
+		p = strchr((char*)u8Data,'?');
+	if(p == NULL)
+		goto ERROR;
+	identify = p[0];
+	p = strtok ((char*)u8Data,"+=?");
+	p = strtok (NULL,"+=?");
+	if(p != NULL)
+		strcpy(cmd,p);
+	else
+		goto ERROR;
+	if(identify == '=')
+		p = strtok (NULL,"=");
+	else
+		p = strtok (NULL,"?");
+	if(p != NULL)
+		strcpy(parametro,p);
+	else
+		goto ERROR;
+
 //	if(identify == '=')
 //	{
 //		if(!strcmp(cmd, (char*)SET_TEMP))
 //		{
 //			fSet_Temp = atof(parametro);
-//			sprintf((char*)u8Uart2Tx,"SETADO PARAMETRO %.2fC\r\n",fSet_Temp);
-//			HAL_UART_Transmit_IT(&huart2, (uint8_t*)u8Uart2Tx,strlen((char*)u8Uart2Tx));
+//			sprintf((char*)u8buffSend,"SETADO PARAMETRO %.2fC\r\n",fSet_Temp);
+//			HAL_UART_Transmit_IT(&huart2, (uint8_t*)u8buffSend,strlen((char*)u8buffSend));
 //		}
 //	}
-//
-//	if(identify == '?')
-//	{
-//		if(!strcmp(cmd, (char*)GET_TEMPOUT))
-//		{
-//			sprintf((char*)u8Uart2Tx,"SOLICITADO TEMP. PT-100 %.2fC\r\n",fConvert_temp);
-//			HAL_UART_Transmit_IT(&huart2, u8Uart2Tx,strlen((char*)u8Uart2Tx));
-//			HAL_UART_Transmit_IT(&huart4, u8Uart2Tx,strlen((char*)u8Uart2Tx));
-//		}
-//		if(!strcmp(cmd, (char*)GET_VOLTAGE_10))
-//		{
-//			sprintf((char*)u8Uart2Tx,"SOLICITADO TENSÃO 0 a 10 -> %.2fmV\r\n",f_voltageValue[VOUT]);
-//
-//			HAL_UART_Transmit_IT(&huart2, u8Uart2Tx,strlen((char*)u8Uart2Tx));
-//			HAL_UART_Transmit_IT(&huart4, u8Uart2Tx,strlen((char*)u8Uart2Tx));
-//		}
-//		if(!strcmp(cmd, (char*)GET_VOLTAGE_AD))
-//		{
-//			sprintf((char*)u8Uart2Tx,"SOLICITADO TENSÃO AD -> %.2fmV\r\n",as16Vad[0]);
-//			HAL_UART_Transmit_IT(&huart2, (uint8_t*)u8Uart2Tx,strlen((char*)u8Uart2Tx));
-//			HAL_UART_Transmit_IT(&huart4, (uint8_t*)u8Uart2Tx,strlen((char*)u8Uart2Tx));
-//		}
-//		if(!strcmp(cmd, (char*)GET_TEMPIN))
-//		{
-//			sprintf((char*)u8Uart2Tx,"SOLICITADO TEM. BMP %.2fC\r\n",ftempBMP);
-//			HAL_UART_Transmit_IT(&huart2, u8Uart2Tx,strlen((char*)u8Uart2Tx));
-//			HAL_UART_Transmit_IT(&huart4, u8Uart2Tx,strlen((char*)u8Uart2Tx));
-//		}
-//		if(!strcmp(cmd, (char*)GET_PRES))
-//		{
-//			sprintf((char*)u8Uart2Tx,"SOLICITADO PRES %.2fhPa\r\n",fpressBMP);
-//			HAL_UART_Transmit_IT(&huart2, u8Uart2Tx,strlen((char*)u8Uart2Tx));
-//			HAL_UART_Transmit_IT(&huart4, u8Uart2Tx,strlen((char*)u8Uart2Tx));
-//		}
-//
-//	}
-//	return 0;
-//
-//	ERROR:
-//	return HAL_ERROR;
-//
-//}
+
+	if(identify == '?')
+	{
+		if(!strcmp(cmd, (char*)GET_VIN))
+		{
+			sprintf((char*)u8buffSend,"SOLICITADO Tensão VIN %.2fmV\r\n",f_voltageValue[VIN]);
+			HAL_UART_Transmit_IT(&huart4, u8buffSend,strlen((char*)u8buffSend));
+		}
+		if(!strcmp(cmd, (char*)GET_IS))
+		{
+			sprintf((char*)u8buffSend,"SOLICITADO Corrente do SHUNT -> %.2fmA\r\n",fCurrentShunt);
+
+			HAL_UART_Transmit_IT(&huart4, u8buffSend,strlen((char*)u8buffSend));
+		}
+		if(!strcmp(cmd, (char*)GET_IH))
+		{
+			sprintf((char*)u8buffSend,"SOLICITADO Corrente do HALL-> %.2fmA\r\n",fCurrentHall);
+			HAL_UART_Transmit_IT(&huart4, (uint8_t*)u8buffSend,strlen((char*)u8buffSend));
+		}
+		if(!strcmp(cmd, (char*)GET_TEMPBMP))
+		{
+			sprintf((char*)u8buffSend,"SOLICITADO TEM. BMP %.2fC\r\n",ftempBMP);
+			HAL_UART_Transmit_IT(&huart4, u8buffSend,strlen((char*)u8buffSend));
+		}
+		if(!strcmp(cmd, (char*)GET_PS))
+		{
+			sprintf((char*)u8buffSend,"SOLICITADO potência do SHUNT %.2fW\r\n",fPowerShunt);
+			HAL_UART_Transmit_IT(&huart4, u8buffSend,strlen((char*)u8buffSend));
+		}
+
+		if(!strcmp(cmd, (char*)GET_PH))
+		{
+			sprintf((char*)u8buffSend,"SOLICITADO potência do HALL %.2fW\r\n",fPowerHall);
+			HAL_UART_Transmit_IT(&huart4, u8buffSend,strlen((char*)u8buffSend));
+		}
+
+	}
+	return 0;
+
+	ERROR:
+	return HAL_ERROR;
+
+}
 // *****************************************************************************
 /// @brief		Aquisição dos valores do sensor BMP
 /// @fn			void ReadBMP(void)

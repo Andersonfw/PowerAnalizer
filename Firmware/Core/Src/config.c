@@ -39,8 +39,8 @@ DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart2_tx;
 
 uint16_t u16BufIndex;						//Index do Buffer RX DMA
-uint8_t u8BufBLE_Tx[UART_BUFFER_SIZE];	//Bufeer RX DMA
-uint8_t u8BufBLE_Rx[30];					//Buffer da UART BLE
+uint8_t u8BufBLE_Tx[UART_BUFFER_SIZE];		//Bufeer RX DMA
+uint8_t u8BufBLE_Rx[UART_BUFFER_SIZE];					//Buffer da UART BLE
 
 uint8_t vu8Index;							//Index da recepção serial COM
 uint8_t u8Uart2Tx[UART_BUFFER_SIZE];		//Buffer de transmissão COM
@@ -460,14 +460,14 @@ uint8_t Config_Bt(void)
 	uint8_t u8size;
 
 
-	u8size = sprintf((char*)u8BufBLE_Rx,"AT+UART?\r\n");
-	HAL_UART_Transmit(&huart4, (uint8_t *)u8BufBLE_Rx, u8size,10);
+	u8size = sprintf((char*)u8BufBLE_Tx,"AT+UART?\r\n");
+	HAL_UART_Transmit(&huart4, (uint8_t *)u8BufBLE_Tx, u8size,10);
 	HAL_UART_Receive(&huart4, u8BuffRxConfig, 20,100);
 	if(strstr((char*)u8BuffRxConfig,(char*)UART_BL) == NULL)
 	{
 		memset(u8BuffRxConfig,0,sizeof(u8BuffRxConfig));
-		u8size = sprintf((char*)u8BufBLE_Rx,"AT+UART=%s",UART_BL);
-		HAL_UART_Transmit(&huart4, (uint8_t *)u8BufBLE_Rx, u8size,10);
+		u8size = sprintf((char*)u8BufBLE_Tx,"AT+UART=%s",UART_BL);
+		HAL_UART_Transmit(&huart4, (uint8_t *)u8BufBLE_Tx, u8size,10);
 		HAL_UART_Receive(&huart4, u8BuffRxConfig, 20,100);
 		if(!strcmp((char*)u8BuffRxConfig,(char*)"OK\r\n"))
 		{
@@ -476,14 +476,14 @@ uint8_t Config_Bt(void)
 	}
 
 	memset(u8BuffRxConfig,0,sizeof(u8BuffRxConfig));
-	u8size = sprintf((char*)u8BufBLE_Rx,"AT+NAME?\r\n");
-	HAL_UART_Transmit(&huart4, (uint8_t *)u8BufBLE_Rx, u8size,10);
-	HAL_UART_Receive(&huart4, u8BuffRxConfig, 20,100);
+	u8size = sprintf((char*)u8BufBLE_Tx,"AT+NAME?\r\n");
+	HAL_UART_Transmit(&huart4, (uint8_t *)u8BufBLE_Tx, u8size,10);
+	HAL_UART_Receive(&huart4, u8BuffRxConfig, 30,100);
 	if(strstr((char*)u8BuffRxConfig,(char*)NAME_BL) == NULL)
 	{
 		memset(u8BuffRxConfig,0,sizeof(u8BuffRxConfig));
-		u8size = sprintf((char*)u8BufBLE_Rx,"AT+NAME=%s",NAME_BL);
-		HAL_UART_Transmit(&huart4, (uint8_t *)u8BufBLE_Rx, u8size,10);
+		u8size = sprintf((char*)u8BufBLE_Tx,"AT+NAME=%s",NAME_BL);
+		HAL_UART_Transmit(&huart4, (uint8_t *)u8BufBLE_Tx, u8size,10);
 		HAL_UART_Receive(&huart4, u8BuffRxConfig, 20,100);
 		if(strcmp((char*)u8BuffRxConfig,(char*)"OK\r\n"))
 		{
@@ -492,14 +492,14 @@ uint8_t Config_Bt(void)
 	}
 
 	memset(u8BuffRxConfig,0,sizeof(u8BuffRxConfig));
-	u8size = sprintf((char*)u8BufBLE_Rx,"AT+PSWD?\r\n");
-	HAL_UART_Transmit(&huart4, (uint8_t *)u8BufBLE_Rx, u8size,10);
+	u8size = sprintf((char*)u8BufBLE_Tx,"AT+PSWD?\r\n");
+	HAL_UART_Transmit(&huart4, (uint8_t *)u8BufBLE_Tx, u8size,10);
 	HAL_UART_Receive(&huart4, u8BuffRxConfig, 20,100);
 	if(strstr((char*)u8BuffRxConfig,(char*)PSW_BL) == NULL)
 	{
 		memset(u8BuffRxConfig,0,sizeof(u8BuffRxConfig));
-		u8size = sprintf((char*)u8BufBLE_Rx,"AT+PSWD=%s",PSW_BL);
-		HAL_UART_Transmit(&huart4, (uint8_t *)u8BufBLE_Rx, u8size,10);
+		u8size = sprintf((char*)u8BufBLE_Tx,"AT+PSWD=%s",PSW_BL);
+		HAL_UART_Transmit(&huart4, (uint8_t *)u8BufBLE_Tx, u8size,10);
 		HAL_UART_Receive(&huart4, u8BuffRxConfig, 20,100);
 		if(strcmp((char*)u8BuffRxConfig,(char*)"OK\r\n"))
 		{
@@ -512,9 +512,7 @@ uint8_t Config_Bt(void)
 	BluPwr(true);
 	huart4.Init.BaudRate = 9600;
 	HAL_UART_Init(&huart4);
-	//	__HAL_UART_ENABLE_IT(&huart4, UART_IT_CM);
-	//	HAL_UART_Receive_DMA(&huart4, u8BufBLE_Tx, UART_BUFFER_SIZE);
-	UART_Start_Receive_DMA(&huart4,u8BufBLE_Tx,UART_BUFFER_SIZE);
+	UART_Start_Receive_DMA(&huart4,u8BufBLE_Rx,UART_BUFFER_SIZE);
 
 	return HAL_OK;
 }
@@ -699,7 +697,7 @@ uint16_t UartGetData(uint16_t u16Size, uint8_t *u8BufGetdata)
 	for (n = 0; n < u16DataSize; n++)
 	{
 		//au8UartRxRdBuffer[u8Uart][n] = au8UartRxWrBuffer[u8Uart][as16UartRxRdIndex[u8Uart]];
-		u8BufGetdata[n] = u8BufBLE_Tx[u16BufIndex];
+		u8BufGetdata[n] = u8BufBLE_Rx[u16BufIndex];
 
 		u16BufIndex += 1;
 
