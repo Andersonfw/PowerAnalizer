@@ -424,6 +424,7 @@ void MainWindow::dataUpDatecomport()
     ui->RX_TextEdit->setTextColor(QColor("black"));
     ui->RX_TextEdit->setFontPointSize(10);
     ui->RX_TextEdit->append("Tempo: " +  QString::number(Time) +" s");
+    ui->RX_TextEdit->append("Tensão na carga = " + voltage + " mV");
     ui->RX_TextEdit->append("Corrente HALL = "+ I_Hall + " mA" );
     ui->RX_TextEdit->append("Corrente SHUNT = " + I_Shunt + " mA");
     ui->RX_TextEdit->append("Potência HALL = " + Power_Hall + " W");
@@ -432,7 +433,7 @@ void MainWindow::dataUpDatecomport()
 
     if(file.isOpen())
     {
-        QString str = (QString::number(Time) + ";" + Vout + ";" + I_Shunt + ";" +I_Hall + ";" + Power_Shunt + ";" + Power_Hall + "\r\n");
+        QString str = (QString::number(Time) + ";" + voltage + ";" + I_Shunt + ";" +I_Hall + ";" + Power_Shunt + ";" + Power_Hall + "\r\n");
         str.replace(".",",");
         file.write(str.toLocal8Bit(),str.toLocal8Bit().length());
     }
