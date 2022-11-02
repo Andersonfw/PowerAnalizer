@@ -25,14 +25,16 @@
 #define VMAX_VOUT			5000.0f
 #define REFRESH_AD			500
 #define REFRESH_TEMP		2000
-#define R1					66950
-#define R2					30050
+#define R1_OUT					66950
+#define R2_OUT					30050
+#define R1_IN					100250
+#define R2_IN					4647
 #define CORRECTION			1
 #define MAXCURRENT			5000.0f		//Corrente máxima do HALL
 #define HALLRESSOLUTION		10.0f		//100mV=1A -> 1mV=10mA no HALL
-#define HALLCURRENTZERO		2540.0f		//Valor de tensão para corrente 0 A no HALL
+#define HALLCURRENTZERO		2550.0f		//Valor de tensão para corrente 0 A no HALL
 
-#define NSAMPLE				50			//numero de amostras para fazer a conversão dos ADS
+#define NSAMPLE				100			//numero de amostras para fazer a conversão dos ADS
 
 // Private macro ---------------------------------------------------------------
 
@@ -125,8 +127,8 @@ int main(void)
 		ReadAD();
 		if(TimeDiff(u32timeADmeans) > 10)
 		{
-			f_Vmean[VIN] += (as16Vad[VIN]*(R1+R2))/R2 * CORRECTION;
-			f_Vmean[VOUT] += (as16Vad[VOUT]*(R1+R2))/R2 * CORRECTION;
+			f_Vmean[VOUT] += (as16Vad[VOUT] *(R1_OUT+R2_OUT) )/ R2_OUT;
+			f_Vmean[VIN] += (as16Vad[VIN] * (R1_IN+R2_IN)) / R2_IN;
 			f_Vmean[HALL] += as16Vad[HALL];
 			f_Vmean[SHUNT] += as16Vad[SHUNT];
 			u32timeADmeans = HAL_GetTick();
@@ -138,7 +140,7 @@ int main(void)
 				f_voltageValue[VOUT] = f_Vmean[VOUT]/NSAMPLE;
 				f_voltageValue[HALL] = f_Vmean[HALL]/NSAMPLE;
 				f_voltageValue[SHUNT] = f_Vmean[SHUNT]/NSAMPLE;
-				fcurrent_4_20 = ((f_voltageValue[VOUT]/NSAMPLE)*16.0 * 2) + 4000.0 ;
+				fcurrent_4_20 = ((f_Vmean[VOUT]/NSAMPLE)*1.60 * 2) + 4000.0 ;
 				f_Vmean[VIN] = 0;
 				f_Vmean[VOUT] = 0;
 				f_Vmean[HALL] = 0;
@@ -162,11 +164,19 @@ void PowerSystem(void)
 	if(TimeDiff(u32timeRefresh) > 100)
 	{
 		u32timeRefresh = HAL_GetTick();
-		fCurrentHall = (f_voltageValue[HALL] - HALLCURRENTZERO) * HALLRESSOLUTION;
-		VoutControl((uint32_t)fCurrentHall);
+		fCurrentHall = - (f_voltageValue[HALL] - HALLCURRENTZERO) * HALLRESSOLUTION;
 
-		fPowerHall = fCurrentHall * f_voltageValue[VOUT] /1000;
-		fPowerShunt = fCurrentShunt * f_voltageValue[VOUT]/1000;
+		fCurrentHall = - (f_voltageValue[HALL] - HALLCURRENTZERO) / 0.1001;
+		fCurrentShunt = (f_voltageValue[SHUNT]/0.6083);
+		VoutControl((uint32_t)fCurrentShunt);
+
+		if(fCurrentHall < 80)		//limite minimo de 80mA para o HALL
+			fCurrentHall = 0;
+
+		if(fCurrentShunt < 0)
+			fCurrentShunt = 0;
+		fPowerHall = fCurrentHall * f_voltageValue[VIN] /1000000;
+		fPowerShunt = fCurrentShunt * f_voltageValue[VIN]/1000000;
 	}
 
 }
@@ -180,27 +190,34 @@ void VoutControl(uint32_t u32Voltage)
 	uint16_t u16Value = (uint16_t) ((as16Vad[VREF] /AD_MAX) * u32Voltage);
 	static uint32_t u32time;
 
-	if(TimeDiff(u32time) > 100)
-	{
-		u32time = HAL_GetTick();
-		if((u16ValueDAC - u16Value > 200) || (u16ValueDAC - u16Value < 200))
-			u16ValueDAC = u16Value;
+	//	if(TimeDiff(u32time) > 100)
+	//	{
+	u32time = HAL_GetTick();
+	//if((u16ValueDAC - u16Value > 200) || (u16ValueDAC - u16Value < 200))
+	u16ValueDAC = u16Value;
 
-		if(u32Voltage > 0 && u32Voltage < 5500)
-		{
-			if(f_voltageValue[VOUT] < u32Voltage)
-				//HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, u16ValueDAC++);
-				SetDAC(++u16ValueDAC);
-			else
-				//HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, u16ValueDAC--);
-				SetDAC(--u16ValueDAC);
-			if(u16ValueDAC > 4095)
-				u16ValueDAC = 4095;
+	if(u16ValueDAC > 4095)
+		u16ValueDAC = 4095;
 
-			if(u16ValueDAC <= 0)
-				u16ValueDAC = 0;
-		}
-	}
+	if(u16ValueDAC <= 0)
+		u16ValueDAC = 0;
+	SetDAC(u16ValueDAC);
+
+	//		if(u32Voltage > 0 && u32Voltage < 5500)
+	//		{
+	//			if(f_voltageValue[VOUT] < u32Voltage)
+	//				//HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, u16ValueDAC++);
+	//				SetDAC(++u16ValueDAC);
+	//			else
+	//				//HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, u16ValueDAC--);
+	//				SetDAC(--u16ValueDAC);
+	//			if(u16ValueDAC > 4095)
+	//				u16ValueDAC = 4095;
+	//
+	//			if(u16ValueDAC <= 0)
+	//				u16ValueDAC = 0;
+	//		}
+	//}
 }
 // *****************************************************************************
 /// @brief		Lê as entradas analógicas
@@ -288,16 +305,17 @@ void TaskDisplay(void)
 	{
 		u32RefreschDisplay = HAL_GetTick();
 		LCD_Clear();
-		LCD_Write_String(15,0,"LEITURAS");
 		sprintf(Buff_Display,"T-BMP: %.2fC",ftempBMP);
+		LCD_Write_String(0,0,Buff_Display);
+		sprintf(Buff_Display,"V_L:%.2fmV",f_voltageValue[VIN]);
 		LCD_Write_String(0,1,Buff_Display);
-		sprintf(Buff_Display,"PT100:%.1fC",fConvert_temp);
+		sprintf(Buff_Display,"I_S:%.2fmA",fCurrentShunt);
 		LCD_Write_String(0,2,Buff_Display);
-		sprintf(Buff_Display,"V_AD:%.2fmV",as16Vad[0]);
+		sprintf(Buff_Display,"I_H:%.1fmA",fCurrentHall);
 		LCD_Write_String(0,3,Buff_Display);
-		sprintf(Buff_Display,"V_O:%.1fmV",f_voltageValue[VOUT]);
+		sprintf(Buff_Display,"P_S:%.2fW",fPowerShunt);
 		LCD_Write_String(0,4,Buff_Display);
-		sprintf(Buff_Display,"[I]:%.2fuA",fcurrent_4_20);
+		sprintf(Buff_Display,"P_H:%.2fW",fPowerHall);
 		LCD_Write_String(0,5,Buff_Display);
 	}
 }
