@@ -141,11 +141,11 @@ int main(void)
 			if (u8countAdMeans == NSAMPLE)
 			{
 				u8countAdMeans = 0;
-				f_voltageValue[VIN] = f_Vmean[VIN]/NSAMPLE;  //pega a média de 100 valores lidos pelo AD dentro de 1 segundo
+				f_voltageValue[VIN] = f_Vmean[VIN]/NSAMPLE - 900;  //pega a média de 100 valores lidos pelo AD dentro de 1 segundo
 				f_voltageValue[VOUT] = f_Vmean[VOUT]/NSAMPLE;
 				f_voltageValue[HALL] = f_Vmean[HALL]/NSAMPLE;
 				f_voltageValue[SHUNT] = f_Vmean[SHUNT]/NSAMPLE;
-				fcurrent_4_20 = ((f_Vmean[VOUT]/NSAMPLE)*1.60 * 2) + 4000.0 ;
+				fcurrent_4_20 = (fCurrentShunt * 3.2) + 4000.0 ;
 				f_Vmean[VIN] = 0;
 				f_Vmean[VOUT] = 0;
 				f_Vmean[HALL] = 0;
@@ -168,10 +168,9 @@ void PowerSystem(void)
 	if(TimeDiff(u32timeRefresh) > 100)
 	{
 		u32timeRefresh = HAL_GetTick();
-		fCurrentHall = - (f_voltageValue[HALL] - HALLCURRENTZERO) * HALLRESSOLUTION;
 
-		fCurrentHall = - (f_voltageValue[HALL] - HALLCURRENTZERO) / 0.1001;
-		fCurrentShunt = (f_voltageValue[SHUNT]/0.6083);
+		fCurrentHall = (f_voltageValue[HALL] * 2);	//Multiplicação por 2 dada  curva de resposta na saída do AD620
+		fCurrentShunt = (f_voltageValue[SHUNT]/0.6083) - 0.03f * fCurrentShunt; //Multiplicação por 0,6 dada  curva de resposta na saída do AD620 e uma compensação de ajuste fino
 		VoutControl((uint32_t)fCurrentShunt);
 
 		if(fCurrentHall < 80)		//limite minimo de 80mA para o HALL
@@ -192,12 +191,7 @@ void PowerSystem(void)
 void VoutControl(uint32_t u32Voltage)
 {
 	uint16_t u16Value = (uint16_t) ((as16Vad[VREF] /AD_MAX) * u32Voltage);
-	static uint32_t u32time;
 
-	//	if(TimeDiff(u32time) > 100)
-	//	{
-	u32time = HAL_GetTick();
-	//if((u16ValueDAC - u16Value > 200) || (u16ValueDAC - u16Value < 200))
 	u16ValueDAC = u16Value;
 
 	if(u16ValueDAC > 4095)
@@ -206,22 +200,6 @@ void VoutControl(uint32_t u32Voltage)
 	if(u16ValueDAC <= 0)
 		u16ValueDAC = 0;
 	SetDAC(u16ValueDAC);
-
-	//		if(u32Voltage > 0 && u32Voltage < 5500)
-	//		{
-	//			if(f_voltageValue[VOUT] < u32Voltage)
-	//				//HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, u16ValueDAC++);
-	//				SetDAC(++u16ValueDAC);
-	//			else
-	//				//HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, u16ValueDAC--);
-	//				SetDAC(--u16ValueDAC);
-	//			if(u16ValueDAC > 4095)
-	//				u16ValueDAC = 4095;
-	//
-	//			if(u16ValueDAC <= 0)
-	//				u16ValueDAC = 0;
-	//		}
-	//}
 }
 // *****************************************************************************
 /// @brief		Lê as entradas analógicas
