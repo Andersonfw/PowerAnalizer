@@ -46,9 +46,6 @@ float ftempBMP;									//Temperatura BMP-180
 float fpressBMP;								//Pressão BM-180
 uint32_t u32KeyTime;
 
-
-
-
 float f_voltageValue[4] = {0};
 float fConvert_temp = 0;
 float  as16Vad[NUM_AD_CHANNELS];
